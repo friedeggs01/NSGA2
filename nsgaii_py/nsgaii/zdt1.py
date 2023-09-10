@@ -15,7 +15,7 @@ def f2(x):
     return 1 - math.sqrt(x[0]/g)
 
 problem = Problem(num_of_variables=30, objectives=[f1, f2], variables_range =[(0, 1)], expand=False,  same_range=True)
-evo = Evolution(problem,num_of_generations=100, mutation_param=20)
+evo = Evolution(problem, num_of_generations=100, mutation_param=20)
 func = [i.objectives for i in evo.evolve()]
 
 function1 = [i[0] for i in func]
