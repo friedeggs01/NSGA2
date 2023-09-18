@@ -1,4 +1,4 @@
-from node import *
+from .node import *
     
 class Link():
     def __init__(self, source: Node, destination: Node, 
@@ -9,7 +9,7 @@ class Link():
         self.id = "{}-{}".format(self.source.id, self.destination.id)
         self.delay = delay
         self.total_delay = 0
-        self.bw_capacity = bw_capacity
+        self.bw_capacity = bw_available
         self.bw_available = bw_available
         
     def bandwidth_consume(self, require_bw):

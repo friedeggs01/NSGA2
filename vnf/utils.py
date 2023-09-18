@@ -1,13 +1,14 @@
 from population import Population
+from problem import Problem
 import random
 
 
 class NSGA2Utils:
 
-    def __init__(self, problem, num_of_individuals=100,
+    def __init__(self, network, sfc_set, num_of_individuals=100,
                  num_of_tour_particips=2, tournament_prob=0.9, crossover_param=2, mutation_param=5):
 
-        self.problem = problem
+        self.problem = Problem(network, sfc_set)
         self.num_of_individuals = num_of_individuals
         self.num_of_tour_particips = num_of_tour_particips
         self.tournament_prob = tournament_prob
