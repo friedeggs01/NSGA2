@@ -6,6 +6,7 @@ class Individual(object):
         self.domination_count = None
         self.dominated_solutions = None
         self.features = []
+        self.new_features = []
         self.objectives = None
 
     def __eq__(self, other):

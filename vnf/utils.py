@@ -108,18 +108,22 @@ class NSGA2Utils:
             return (2 * u) ** (1 / (self.crossover_param + 1))
         return (2 * (1 - u)) ** (-1 / (self.crossover_param + 1))
 
+    # def __mutate(self, child):
+    #     num_of_features = len(child.features)
+    #     for gene in range(num_of_features):
+    #         u, delta = self.__get_delta()
+    #         if u < 0.5:
+    #             child.features[gene] += delta * (child.features[gene] - self.problem.variables_range[gene][0])
+    #         else:
+    #             child.features[gene] += delta * (self.problem.variables_range[gene][1] - child.features[gene])
+    #         if child.features[gene] < self.problem.variables_range[gene][0]:
+    #             child.features[gene] = self.problem.variables_range[gene][0]
+    #         elif child.features[gene] > self.problem.variables_range[gene][1]:
+    #             child.features[gene] = self.problem.variables_range[gene][1]
     def __mutate(self, child):
-        num_of_features = len(child.features)
-        for gene in range(num_of_features):
-            u, delta = self.__get_delta()
-            if u < 0.5:
-                child.features[gene] += delta * (child.features[gene] - self.problem.variables_range[gene][0])
-            else:
-                child.features[gene] += delta * (self.problem.variables_range[gene][1] - child.features[gene])
-            if child.features[gene] < self.problem.variables_range[gene][0]:
-                child.features[gene] = self.problem.variables_range[gene][0]
-            elif child.features[gene] > self.problem.variables_range[gene][1]:
-                child.features[gene] = self.problem.variables_range[gene][1]
+        idx = random.randint(0, len(child.features) - 1)
+        # print("idx: ", idx)
+        child.features[idx] = random.uniform(0,1)
 
     def __get_delta(self):
         u = random.random()

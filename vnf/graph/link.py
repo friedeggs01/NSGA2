@@ -2,14 +2,14 @@ from .node import *
     
 class Link():
     def __init__(self, source: Node, destination: Node, 
-                 delay: float, bw_capacity: float = -1, 
-                 bw_available: float = -1) -> None:
+                 delay: float, bw_capacity = float('inf'), 
+                 bw_available = float('inf')) -> None:
         self.source = source
         self.destination = destination
         self.id = "{}-{}".format(self.source.id, self.destination.id)
         self.delay = delay
         self.total_delay = 0
-        self.bw_capacity = bw_available
+        self.bw_capacity = bw_capacity
         self.bw_available = bw_available
         
     def bandwidth_consume(self, require_bw):

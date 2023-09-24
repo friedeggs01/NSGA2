@@ -1,7 +1,7 @@
 class Node():
     def __init__(self, id: int, type: bool, delay: float, cost: float,
-                 mem_capacity: float = -1, mem_available: float = -1,
-                 cpu_capacity: float = -1, cpu_available: float = -1,
+                 mem_capacity: float = -1, mem_available = float('inf'),
+                 cpu_capacity: float = -1, cpu_available = float('inf'),
                  vnf_used: list = None, vnf_possible: list = None,
                  vnf_cost: list = None, num_vnfs_limit: int = -1
                  ) -> None:

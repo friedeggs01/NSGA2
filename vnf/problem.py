@@ -12,40 +12,77 @@ class Problem:
     def __init__(self, network: Network, sfcs: SFC_SET):
         self.network = network
         self.sfcs = sfcs
+        self.variables_range = [(0, 1)]
         
+    # def generate_individual(self):
+    #     individual = Individual()
+    #     vnf_pool = list(range(1, self.network.num_type_vnfs+1))
+    #     for _ in range(self.network.num_servers):
+    #         group = random.sample(vnf_pool, self.network.num_vnfs_limit)
+    #         individual.features.extend(group)
+    #     print("individual features:", individual.features)
+    #     return individual
     def generate_individual(self):
         individual = Individual()
-        vnf_pool = list(range(1, self.network.num_type_vnfs+1))
-        for _ in range(self.network.num_servers):
-            group = random.sample(vnf_pool, self.network.num_vnfs_limit)
-            individual.features.extend(group)
+        individual.features = [random.uniform(0, 1) for _ in range(self.network.num_vnfs_limit * self.network.num_servers)]
         return individual
+    def decode(self, individual):
+        decode_ind = []
+        temp = sorted(individual.features)
+        for x in individual.features:
+            idx = temp.index(x)
+            decode_ind.append(idx+1)
+            temp[idx] = -1
+            decode_ind = [(int(x%self.network.num_type_vnfs) +1) for x in decode_ind]
+        individual.new_features = decode_ind
     
     def calculate_objectives(self, individual):
+        self.decode(individual)
+        print("individual new features:", individual.new_features)
         network_copy = copy.deepcopy(self.network)
         self._kichhoatNodes(individual, network_copy)
+        check = True
         for sfc in self.sfcs.sfc_set:
+            print("sfc list vnf: ", sfc.vnf_list)
+            if check == False:
+                break
             for i in sfc.vnf_list:
+                print("vnf i:", i)
                 ser = self.find_servers_have_vnf_i(i, individual, network_copy)
-                ser = self.remove_servers_invalid(ser, sfc)
-                self.find_path_dijkstra(ser,network_copy, sfc)
-            #FIXME - link_to_des = network_copy.L[].delay
-            self.network.total_delay_link += link_to_des.delay 
-            sfc.path.append(sfc.destination)        
-        
+                print("ser: ", ser)
+                if len(ser) == 0:
+                    check = False
+                    individual.objectives = [float('inf') for _ in range(3) ]
+                    break
+                ser = self.remove_servers_invalid(ser, sfc, network_copy)
+                self.find_path_dijkstra(ser, network_copy, sfc)
+            if check == False:
+                break    
+            # print("source id: ", sfc.source)
+            # print("sfc.path[-1]: ", sfc.path[-1])
+            # print("destination id: ", sfc.destination)
+            self.find_path_dijkstra([sfc.destination], network_copy, sfc)     
+
         individual.objectives = self._obj_func(network_copy)
     
     def _kichhoatNodes(self, individual: Individual, network_copy: Network) -> None:
         for node_server_id in range(self.network.num_servers):
-            for vnf_id in range(self.network.num_vnfs_limit):
-                network_copy.cost_servers_use += network_copy.N[network_copy.server_ids[node_server_id]].cost
-                network_copy.cost_vnfs_use += network_copy.N[network_copy.server_ids[node_server_id]].vnf_cost[individual.features[node_server_id * network_copy.num_servers + vnf_id]]
+            for vnf_id in range(1, self.network.num_vnfs_limit + 1):
+                server_id = network_copy.server_ids[node_server_id]
+                # print("server_id: ", server_id)
+                network_copy.cost_servers_use += network_copy.N[server_id].cost
+                index_vnf = node_server_id * network_copy.num_vnfs_limit + vnf_id - 1
+                # print("index_vnf: ", index_vnf)
+                vnf = individual.new_features[index_vnf]
+                # print("vnf: ", vnf)
+                if vnf != 0:
+                    network_copy.cost_vnfs_use += network_copy.N[server_id].vnf_cost[vnf-1]
                         
     def _obj_func(self, network_copy: Network):
         fitness = []
         # delay of all sfcs
         fitness.append((network_copy.delay_link + network_copy.delay_server)/(network_copy.total_delay_link + network_copy.total_delay_server))
-        # cost of install servers
+        # cost of install serversd
         fitness.append(network_copy.cost_servers_use/network_copy.sum_cost_servers)
         # cost of install vnfs
         fitness.append(network_copy.cost_vnfs_use/network_copy.max_cost_vnfs)
@@ -53,12 +90,16 @@ class Problem:
     
     # return list of Node (class)
     def find_servers_have_vnf_i(self, i: int, individual: Individual, network_copy: Network):
-        positions = [index for index, value in enumerate(individual.features) if value == i]
+        i = int(i)
+        positions = [index for index, value in enumerate(individual.new_features) if value == i]
+        print("positions: ", positions)
         server_id = [positions[index] // self.network.num_vnfs_limit  for index in range(len(positions))]
-        server_node = [network_copy.N[i].values for i in server_id]
+        print("server_id: ", server_id)
+        # chuyển id đó sang node đó
+        server_node = [network_copy.N[i] for i in server_id]
         return server_node
         
-    def remove_servers_invalid(self, ser, sfc: SFC):
+    def remove_servers_invalid(self, ser, sfc: SFC, network_copy: Network):
         valid_ser = []
         for server_node in ser:
             if sfc.cpu < server_node.cpu_available:
@@ -67,57 +108,73 @@ class Problem:
     
     # find path have min bandwidth, then update constraint    
     def find_path_dijkstra(self, end_nodes, network_copy: Network, sfc: SFC):
-        distances = {node: float('inf') for node in network_copy.N.values} 
-        distances[sfc.path[-1]] = 0
-        previous_nodes = {node: None for node in network_copy.N.values} 
-        unvisited_nodes = [(0, sfc.path[-1])]
-
-        while unvisited_nodes:
+        paths = {}
+        distances = {node: float('inf') for node in network_copy.N.values()}
+        start_id = sfc.path[-1] 
+        distances[start_id] = 0
         
-            current_distance, current_node = heapq.heappop(unvisited_nodes)
-
-            if current_node in end_nodes:
-                end_nodes.remove(current_node)
-                if len(end_nodes) == 0:
-                    break 
-
-            if current_distance > distances[current_node]:
-                continue 
-            
-            for neighbor, weight in network_copy.adj[current_node].keys(), network_copy.adj[current_node].values().delay:
-                distance = current_distance + weight
-                # checking constraint
-                if sfc.bw > network_copy.L[current][neighbor].bw_available:
-                    continue
-                if neighbor.type == True and sfc.cpu > network_copy.N[neighbor.id].cpu_available:
-                    continue
-                if neighbor.type == False and sfc.memory > network_copy.N[neighbor.id].mem_available:
-                    continue
-                if distance < distances[neighbor]:
-                    distances[neighbor] = distance
-                    previous_nodes[neighbor] = current_node
-                    heapq.heappush(unvisited_nodes, (distance, neighbor))
-
+        for end_node in end_nodes:
+            print("end node: ", end_node)
+            previous_nodes = {node: None for node in network_copy.N.values()} 
+            unvisited_nodes = [(0, sfc.path[-1])]
+            while unvisited_nodes:
+                current_distance, current_id = heapq.heappop(unvisited_nodes)
+                current_node = network_copy.N[current_id]
+                if current_distance > distances[current_node]:
+                    continue 
+                for neighbor_id, link in network_copy.adj[current_id].items():
+                    weight = link.delay
+                    # print("weight: ", weight)
+                    neighbor_node = network_copy.N[neighbor_id]
+                    # print("current_distance: ", current_distance)
+                    distance = current_distance + weight
+                    # print("distance: ", distance)
+                    
+                    # checking constraint
+                    if sfc.bw > link.bw_available:
+                        continue
+                    if neighbor_node.type == True and sfc.cpu > network_copy.N[neighbor_id].cpu_available:
+                        continue
+                    if neighbor_node.type == False and sfc.memory > network_copy.N[neighbor_id].mem_available:
+                        continue
+                    
+                    # print("------distances[neighbor] before: ", distances[neighbor_node])
+                    if distance < distances[neighbor_node]:
+                        distances[neighbor_node] = distance
+                        # print("------distances[neighbor] after: ", distances[neighbor_node])
+                        previous_nodes[neighbor_node] = current_node
+                        heapq.heappush(unvisited_nodes, (distance, neighbor_id))
+            path = [end_node]
+            temp_node = end_node
+            print("temp_node.id: ", temp_node.id)
+            while temp_node.id != start_id:
+                temp_node = previous_nodes[temp_node]
+                if temp_node is None:
+                    break
+                path.append(temp_node)
+            path.reverse()
+            paths[end_node] = [path, distances[end_node]]
+    
         smallest_weight = float('inf')
         smallest_end_node = None
         for end_node in end_nodes:
             if distances[end_node] < smallest_weight:
                 smallest_weight = distances[end_node]
                 smallest_end_node = end_node
-
-        current = smallest_end_node
-        sfc.path.insert(-1,current)
-        current.cpu_available -= sfc.cpu
-        position = -1
-        while current:
-            current = previous_nodes[current]
-            if current.type == False:
-                current.mem_available -= sfc.memory
+        end_before = sfc.path[-1]   
+        sfc.path.append(paths[smallest_end_node][0])
+        smallest_end_node.cpu_available -= sfc.cpu
+        for i, node in enumerate(paths[smallest_end_node][0]):
+            if i == 0:
+                print("type end, node: ", type(end_before), type(node))
+                print("end, node", end_before, node.id)
+                network_copy.delay_link += network_copy.adj[end_before][node.id].delay
+            elif (i+1) < len(paths[smallest_end_node][0]):
+                network_copy.delay_link += network_copy.adj[node.id][paths[smallest_end_node][0][i+1].id].delay
+            # network_copy.adj[current.id][previous_nodes[current].id].bw_available -= sfc.bw  
+            if node.type == False:
+                node.mem_available -= sfc.memory
             else:
-                current.cpu_available -= sfc.cpu
-            network_copy.L[current.id][sfc.path[-1]].bw_available -= sfc.bw
-            
-            sfc.path.insert(position, current)
-            position -= 1        
+                node.cpu_available -= sfc.cpu  
     
     # check vnf not used and then calculate again the fitness of individual

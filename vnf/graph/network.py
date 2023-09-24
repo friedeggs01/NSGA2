@@ -79,8 +79,6 @@ class Network():
             self.add_link(Link(source =self.N[_source_id], 
                                 destination= self.N[_destination_id], delay=_delay))
             self.total_delay_link += _delay
-        
-        #print(f"Initialized: {self.__repr__()}")
 
         self.create_networkx()
 
@@ -127,17 +125,3 @@ class Network():
             self._update_adjacent(link)
             self.num_links += 1
     
-    def create_constraints_and_min_paths(self, sfc_set):
-        self.memmax = sfc_set.memmax
-        self.cpumax = sfc_set.cpumax
-        self.capmax = sfc_set.capmax
-
-        for node in self.N.values():
-            node.mem_capacity, node.mem_available = sfc_set.memmax, sfc_set.memmax
-            if node.type == 1:
-                node.cpu_capacity, node.cpu_available = sfc_set.cpumax, sfc_set.cpumax
-
-        for link in self.L.values():
-            link.resource_capacity, link.resource_available = sfc_set.capmax, sfc_set.capmax
-
-        self.search_path_min()

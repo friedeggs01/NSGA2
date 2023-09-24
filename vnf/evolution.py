@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 class Evolution:
 
-    def __init__(self, network, sfc_set, num_of_generations=1000, num_of_individuals=100, num_of_tour_particips=2,
+    def __init__(self, network, sfc_set, num_of_generations=100, num_of_individuals=100, num_of_tour_particips=2,
                  tournament_prob=0.9, crossover_param=2, mutation_param=5):
         self.utils = NSGA2Utils(network, sfc_set, num_of_individuals, num_of_tour_particips, tournament_prob, crossover_param,
                                 mutation_param)
@@ -21,7 +21,6 @@ class Evolution:
             self.utils.calculate_crowding_distance(front)
         children = self.utils.create_children(self.population)
         returned_population = None
-        print("dddddddđ")
         for i in tqdm(range(self.num_of_generations)):
             self.population.extend(children)
             self.utils.fast_nondominated_sort(self.population)
@@ -40,5 +39,9 @@ class Evolution:
             for front in self.population.fronts:
                 self.utils.calculate_crowding_distance(front)
             children = self.utils.create_children(self.population)
+            print("Generation: ", i)
+            for individual in self.population.fronts[0]:
+                print("individual.fitness:", individual.objectives)
         #TODO - in giá trị fitness của
+
         return returned_population.fronts[0]
