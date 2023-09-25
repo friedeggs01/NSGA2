@@ -7,6 +7,7 @@ class Individual(object):
         self.dominated_solutions = None
         self.features = []
         self.new_features = []
+        self.check_use = []
         self.objectives = None
 
     def __eq__(self, other):

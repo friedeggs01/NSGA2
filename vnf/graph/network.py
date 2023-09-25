@@ -55,9 +55,10 @@ class Network():
                 self.cost_servers.append(_cost)
                 self.cost_vnfs.append(line[3:])
                 self.total_delay_server += _delay
-
+            
         self.num_servers = len(self.server_ids)
         self.sum_cost_servers = np.sum(self.cost_servers)
+        print("sum server cost: ", self.sum_cost_servers)
         self.min_cost_servers = np.min(self.cost_servers)
         self.max_cost_servers = np.max(self.cost_servers)
         self.N_server = [self.N[id] for id in self.server_ids]
@@ -125,3 +126,5 @@ class Network():
             self._update_adjacent(link)
             self.num_links += 1
     
+    def find_server(self, server_id):
+        return self.server_ids.index(server_id)

@@ -39,9 +39,10 @@ class Evolution:
             for front in self.population.fronts:
                 self.utils.calculate_crowding_distance(front)
             children = self.utils.create_children(self.population)
-            print("Generation: ", i)
-            for individual in self.population.fronts[0]:
-                print("individual.fitness:", individual.objectives)
+            if i == 0 or i == 99:
+                print("Generation: ", i)
+                for individual in self.population.fronts[0]:
+                    print("individual.fitness:", individual.objectives)
         #TODO - in giá trị fitness của
 
         return returned_population.fronts[0]
