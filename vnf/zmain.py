@@ -16,16 +16,16 @@ names = ["cogent"]
 areas = ["center"]
 requests = [10]
 i_s = [0]
-# folder_path = 'D:\HỌC ĐI BẠN TRẺ\Lab training\NSGA2\vnf\graph\output'
-folder_path = 'vnf\graph\output'
+# folder_path = 'NSGA2\vnf\graph\output'
+folder_path = 'graph\output'
 os.makedirs(folder_path, exist_ok=True)
 for name in names:
     for area in areas:
         for request in requests:
             for i in i_s:
                 name_folder = name+"_"+area+"_"+str(i)
-                network = Network("D:/HỌC ĐI BẠN TRẺ/Lab training/NSGA2/vnf/dataset/" + name_folder + "/input.txt")
-                sfc_set = SFC_SET("D:/HỌC ĐI BẠN TRẺ/Lab training/NSGA2/vnf/dataset/" + name_folder + "/request" + str(request) + ".txt")
+                network = Network("dataset/" + name_folder + "/input.txt")
+                sfc_set = SFC_SET("dataset/" + name_folder + "/request" + str(request) + ".txt")
                 evo = Evolution(network, sfc_set, mutation_param=20)
                 func = [i.objectives for i in evo.evolve()]
                 file_path = os.path.join(folder_path, f'{name_folder}_request_{str(request)}_result.csv')
