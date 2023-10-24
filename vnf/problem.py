@@ -6,6 +6,7 @@ from graph.sfc import SFC
 import random
 import copy
 import heapq
+import time
 
 class Problem:
 
@@ -41,9 +42,9 @@ class Problem:
         self.decode(individual)
         # print("individual new features:", individual.new_features)
         network_copy = copy.deepcopy(self.network)
-        # self._kichhoatNodes(individual, network_copy)
+        sfcs_copy = copy.deepcopy(self.sfcs)
         check = True
-        for sfc in self.sfcs.sfc_set:
+        for sfc in sfcs_copy.sfc_set:
             # print("sfc list vnf: ", sfc.vnf_list)
             if check == False:
                 break
@@ -51,21 +52,27 @@ class Problem:
                 # print("vnf i:", i)
                 ser, pos = self.find_servers_have_vnf_i(i, individual, network_copy)
                 # print("ser: ", ser)
+                # print("pos", pos)
                 if len(ser) == 0:
                     check = False
                     individual.objectives = [float('inf') for _ in range(3) ]
                     break
                 ser = self.remove_servers_invalid(ser, sfc, network_copy)
-                # print("valide ser: ", ser)
-                self.find_path_dijkstra(ser, network_copy, sfc, pos, individual)
+                new_ser = []
+                for i, s in enumerate(ser):
+                    # s = network_copy.N[network_copy.server_ids[i]]
+                    # print("valid ser: ", s.id)
+                    new_ser.append(s)
+                self.find_path_dijkstra(new_ser, network_copy, sfc, pos, individual)
             if check == False:
                 break    
             # print("source id: ", sfc.source)
-            # print("sfc.path[-1]: ", sfc.path[-1])
+            # print("sfc.path[-1]: ", sfc.path)
             # print("destination id: ", sfc.destination)
             self.find_path_dijkstra([network_copy.N[sfc.destination]], network_copy, sfc, None, individual)     
         self._kichhoatNodes(individual, network_copy)
         individual.objectives = self._obj_func(network_copy, self.sfcs)
+        sfc.path = [sfc.source]
     
     def _kichhoatNodes(self, individual: Individual, network_copy: Network) -> None:
         for i in range(len(individual.features)):
@@ -96,10 +103,10 @@ class Problem:
         fitness = []
         # delay of all sfcs
         fitness.append((network_copy.delay_link + network_copy.delay_server)/((network_copy.total_delay_link + network_copy.total_delay_server)*sfc_set.num_sfc))
-        # cost of install serversd
-        fitness.append(network_copy.cost_servers_use/network_copy.sum_cost_servers)
+        # cost of install serversd and install vnfs
+        fitness.append(0.5 *(network_copy.cost_servers_use/network_copy.sum_cost_servers + network_copy.cost_vnfs_use/network_copy.max_cost_vnfs))
         # cost of install vnfs
-        fitness.append(network_copy.cost_vnfs_use/network_copy.max_cost_vnfs)
+        # fitness.append(network_copy.cost_vnfs_use/network_copy.max_cost_vnfs)
         return fitness
     
     # return list of Node (class)
@@ -111,6 +118,8 @@ class Problem:
         # print("server_id: ", server_id)
         # chuyển id đó sang node đó
         server_node = [network_copy.N[i] for i in server_id]
+        for i, s in enumerate(server_node):
+            server_node[i] = network_copy.N[network_copy.server_ids[server_node[i].id]]
         pos = {node: positions[index] for index, node in enumerate(server_node)}
         return server_node, pos
         
@@ -125,13 +134,13 @@ class Problem:
     def find_path_dijkstra(self, end_nodes, network_copy: Network, sfc: SFC, pos, individual: Individual):
         paths = {}
         distances = {node: float('inf') for node in network_copy.N.values()}
-        start_id = sfc.path[-1]
-        # print("sfc.path: ", sfc.path) 
+        start_id = sfc.path[-1] 
         # print("start_id", start_id)
         distances[network_copy.N[start_id]] = 0
         
         # for end_node in end_nodes:
-        #     print("end node: ", end_node)
+            # print("end node: ", end_node.id)
+        # time.sleep(10)
         previous_nodes = {node: None for node in network_copy.N.values()} 
         unvisited_nodes = [(0, sfc.path[-1])]
         while unvisited_nodes:
@@ -192,8 +201,10 @@ class Problem:
         path_id = []
         for node in (paths[smallest_end_node][0]):
             path_id.append(node.id)
-        end_before = sfc.path[-1]   
+        end_before = sfc.path[-1] 
+        sfc.path.pop()  
         sfc.path.extend(path_id)
+        # print("sfc.path: ", sfc.path)
         smallest_end_node.cpu_available -= sfc.cpu
         network_copy.delay_link += paths[smallest_end_node][1]
         for i, node in enumerate(paths[smallest_end_node][0]):

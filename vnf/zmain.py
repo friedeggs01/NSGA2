@@ -7,15 +7,15 @@ import csv
 import os
 
 
-names = [ "cogent", "conus", "nsf"]
-areas = ["center", "rural", "uniform", "urban"]
-requests = [10, 20, 30]
-i_s = [0, 1, 2, 3, 4]
+# names = [ "cogent", "conus", "nsf"]
+# areas = ["center", "rural", "uniform", "urban"]
+# requests = [10, 20, 30]
+# i_s = [0, 1, 2, 3, 4]
 
-# names = ["cogent"]
-# areas = ["center"]
-# requests = [10]
-# i_s = [0]
+names = ["nsf"]
+areas = ["center"]
+requests = [10]
+i_s = [0]
 # folder_path = 'D:\HỌC ĐI BẠN TRẺ\Lab training\NSGA2\vnf\graph\output'
 folder_path = 'vnf\graph\output'
 os.makedirs(folder_path, exist_ok=True)
